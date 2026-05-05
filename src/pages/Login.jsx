@@ -151,7 +151,6 @@ function Login() {
           </div>
 
           {/* Sign Up Link */}
-          {/* TODO disable sign up link while logging in */}
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
             <button
