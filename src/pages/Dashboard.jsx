@@ -22,7 +22,16 @@ function Dashboard() {
 
 
   useEffect(() => {
-    // TODO fetch plants data from server
+    const fetchPlants = async () => {
+      try {
+        const response = await axios.get("http://gulayan-server.test/api/plants");
+        setPlants(response.data.data || response.data);
+      } catch (error) {
+        console.error("Error fetching plants:", error);
+      }
+    };
+
+    fetchPlants();
   }, []);
 
   return (
