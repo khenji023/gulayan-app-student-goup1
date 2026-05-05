@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { api } from '../api'
 
 function Login() {
@@ -9,6 +10,8 @@ function Login() {
     password: '',
     rememberMe: false
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -20,8 +23,32 @@ function Login() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    //TODO make the login process functional
+    if (isSubmitting) return
 
+    setIsSubmitting(true)
+    setErrorMessage('')
+
+    try {
+      const response = await api.post('/login', {
+        email: formData.email,
+        password: formData.password
+      })
+
+      const token = response?.data?.token ?? response?.data?.access_token ?? response?.data?.data?.token
+      if (!token) {
+        throw new Error('Login response did not include an authentication token.')
+      }
+
+      localStorage.setItem('token', token)
+      toast.success('Signed in successfully!')
+      navigate('/dashboard')
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || 'Unable to sign in. Please try again.'
+      setErrorMessage(message)
+      toast.error(message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -83,15 +110,33 @@ function Login() {
               />
             </div>
 
-            {/* Submit Button */}
-            {/* TODO disable and show loading icon while logging in. */}
+            {/* Remember Me */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                name="rememberMe"
+                checked={formData.rememberMe}
+                onChange={handleChange}
+                className="h-4 w-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+              />
+              <label htmlFor="rememberMe" className="text-sm text-gray-700">
+                Remember me
+              </label>
+            </div>
+
+            {errorMessage && (
+              <p className="text-sm text-red-600">{errorMessage}</p>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold 
-                            hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 
-                            focus:ring-offset-2 transition duration-200 shadow-md"
+              disabled={isSubmitting}
+              className={`w-full bg-green-600 text-white py-3 rounded-lg font-semibold 
+                            focus:outline-none focus:ring-2 focus:ring-green-500 
+                            focus:ring-offset-2 transition duration-200 shadow-md ${isSubmitting ? 'opacity-70 cursor-not-allowed' : 'hover:bg-green-700'}`}
             >
-              Sign In
+              {isSubmitting ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 
@@ -110,8 +155,10 @@ function Login() {
           <p className="mt-6 text-center text-sm text-gray-600">
             Don't have an account?{' '}
             <button
+              type="button"
               onClick={() => navigate('/signup')}
-              className="cursor-pointer text-green-600 hover:text-green-700 font-semibold">
+              disabled={isSubmitting}
+              className={`cursor-pointer text-green-600 font-semibold transition duration-200 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:text-green-700'}`}>
               Sign up for free
             </button>
           </p>
