@@ -49,7 +49,7 @@ function ModalNewRecord({ isOpen, onClose, onSubmit }) {
       seedling_count: '',
       batch_name: '',
       starting_fund: '',
-      seedling_source: ''
+      supplier: ''
     });
   }
 

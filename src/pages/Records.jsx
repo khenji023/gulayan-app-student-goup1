@@ -7,7 +7,6 @@ import { api } from '../api';
 import { toast } from 'sonner';
 
 function Records() {
-  //TODO: add loading icon while ongoing ang loading ng records.
   const [records, setRecords] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -22,15 +21,54 @@ function Records() {
   const isInInitialMount = useRef(true);
 
   const handleSearchPlants = async () => {
-    // TODO search from the the backend; in case that all records is not yet loaded
+    // Backend search is not implemented yet; client-side filtering is applied for now.
   }
   const handleLoadRecords = async (page = 1, append = false) => {
-    //TODO: load the data from the database
-    //TODO: implement paginated data loading
+    if (page === 1) {
+      setIsLoading(true);
+    } else {
+      setIsLoadingMore(true);
+    }
+
+    try {
+      const response = await api.get('plants', {
+        params: {
+          page,
+        },
+      });
+
+      const payload = response?.data;
+      const nextRecords = Array.isArray(payload?.data)
+        ? payload.data
+        : Array.isArray(payload)
+          ? payload
+          : [];
+
+      setRecords(prev => append ? [...prev, ...nextRecords] : nextRecords);
+      const lastPage = payload?.meta?.last_page;
+
+      if (typeof lastPage === 'number') {
+        setHasMore(page < lastPage);
+      } else {
+        setHasMore(nextRecords.length > 0);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Error encountered while loading records.');
+    } finally {
+      setIsLoading(false);
+      setIsLoadingMore(false);
+    }
   }
   const handleAddRecord = async (formData) => {
     try {
-      //TODO: make add new record functional
+      const response = await api.post('plants', formData);
+      const createdRecord = response?.data?.data ?? response?.data;
+
+      if (createdRecord) {
+        setRecords(prev => [createdRecord, ...prev]);
+      }
+
       toast.success("New record saved.");
     } catch (error) {
       console.error(error);
@@ -41,7 +79,13 @@ function Records() {
   }
   const handleUpdateRecord = async (data) => {
     try {
-      //TODO make update record functional
+      const response = await api.put(`plants/${data.id}`, data);
+      const updatedRecord = response?.data?.data ?? response?.data ?? data;
+
+      setRecords(prev => prev.map(record =>
+        record.id === updatedRecord.id ? updatedRecord : record
+      ));
+
       toast.success("Plant data updated.");
     } catch (error) {
       console.error(error);
@@ -150,7 +194,6 @@ function Records() {
       </div>
 
       {/* Records Table */}
-      {/* TODO implement pagination plants table */}
       <div className="bg-white rounded-lg shadow-md border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto max-h-[580px] overflow-y-auto">
           <table className="relative w-full">
@@ -172,7 +215,7 @@ function Records() {
                 isLoading && records.length === 0 ?
                   (
                     <tr>
-                      <td colSpan={7} className='py-10'>
+                      <td colSpan={8} className='py-10'>
                         <PlantLoading size='2xl' variant='pulse' text="Loading records" />
                       </td>
                     </tr>
